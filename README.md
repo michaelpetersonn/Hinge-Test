@@ -31,6 +31,57 @@ A browser-based tool for creating fake Hinge dating profiles for your friends. P
 
 > **Why a local server?** The app uses `html2canvas` for screenshots, which requires HTTP — opening the file directly via `file://` will cause security restrictions.
 
+## Troubleshooting
+
+### "Address already in use" error
+
+Another process is already using port 8765. Either:
+
+- **Use it** — the server is already running, just open `http://localhost:8765/index.html` in your browser.
+- **Kill the old process and restart:**
+
+  ```bash
+  lsof -ti:8765 | xargs kill -9
+  python3 -m http.server 8765
+  ```
+
+- **Or pick a different port:**
+
+  ```bash
+  python3 -m http.server 9000
+  ```
+
+  Then open `http://localhost:9000/index.html` instead.
+
+### Page won't load / connection refused
+
+1. Make sure the terminal is still running the `python3 -m http.server` command — don't close it.
+2. Confirm you're in the right directory. Run `ls` and you should see `index.html` in the output.
+3. Try `http://127.0.0.1:8765/index.html` instead of `localhost`.
+
+### Blank page or broken layout
+
+- **Hard refresh** your browser: **Cmd + Shift + R** (Mac) or **Ctrl + Shift + R** (Windows).
+- Make sure you're opening via `http://localhost:...` and **not** via `file:///...` in the URL bar.
+
+### Screenshots / copy to clipboard not working
+
+- Must be served over HTTP (localhost), not opened as a file.
+- Clipboard copy requires a secure context — `localhost` counts, but `file://` does not.
+- If copy still fails, use the **Download** buttons instead.
+
+### Google Drive sync issues
+
+Since this project lives on Google Drive, the file may take a moment to sync after edits. If you see stale content:
+
+1. Check that Google Drive has finished syncing (look for the cloud icon in Finder).
+2. Hard refresh the browser (**Cmd + Shift + R**).
+3. Add `?v=123` (any random number) to the end of the URL to bust the cache:
+
+   ```
+   http://localhost:8765/index.html?v=123
+   ```
+
 ## How to Use
 
 ### 1. Fill in Profile Info
