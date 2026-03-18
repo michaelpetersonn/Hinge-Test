@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hinge Profile Builder</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💜</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --hinge-dark: #1A1A2E;
+            --hinge-purple: #5C2D51;
+            --hinge-purple-accent: #7B3F6E;
+            --hinge-purple-light: #F0EAF0;
+            --hinge-gray: #8E8E93;
+            --hinge-gray-light: #F2F2F7;
+            --hinge-border: #E5E5EA;
+            --hinge-bg: #EDE6F2;
+            --font: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font);
+            background: var(--hinge-bg);
+            color: var(--hinge-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Editor Panel ── */
+        .editor {
+            width: 400px;
+            min-width: 400px;
+            background: #fff;
+            border-right: 1px solid var(--hinge-border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .editor-header {
+            padding: 24px 24px 20px;
+            border-bottom: 1px solid var(--hinge-border);
+        }
+
+        .editor-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--hinge-purple);
+            letter-spacing: -0.3px;
+        }
+
+        .editor-header p {
+            font-size: 13px;
+            color: var(--hinge-gray);
+            margin-top: 4px;
+        }
+
+        .editor-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .section {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--hinge-gray-light);
+        }
+
+        .section h3 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--hinge-gray);
+            margin-bottom: 14px;
+        }
+
+        .field {
+            margin-bottom: 12px;
+        }
+
+        .field:last-child { margin-bottom: 0; }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid var(--hinge-border);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 14px;
+            color: var(--hinge-dark);
+            background: #FAFAFA;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            border-color: var(--hinge-purple);
+            background: #fff;
+        }
+
+        .field textarea {
+            resize: vertical;
+            min-height: 64px;
+        }
+
+        .field-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .field-row .field { flex: 1; }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .photo-slot {
+            aspect-ratio: 3/4;
+            border: 2px dashed var(--hinge-border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            background: var(--hinge-gray-light);
+        }
+
+        .photo-slot:hover {
+            border-color: var(--hinge-purple);
+            background: var(--hinge-purple-light);
+        }
+
+        .photo-slot.has-photo {
+            border-style: solid;
+            border-color: transparent;
+        }
+
+        .photo-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            inset: 0;
+        }
+
+        .photo-slot .placeholder-icon {
+            color: var(--hinge-gray);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .photo-slot .placeholder-icon svg {
+            display: block;
+            margin: 0 auto 4px;
+        }
+
+        .photo-slot .remove-photo {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .photo-slot:hover .remove-photo { opacity: 1; }
+
+        .prompt-group {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--hinge-gray-light);
+        }
+
+        .prompt-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .prompt-group .custom-prompt-input {
+            margin-top: 6px;
+            display: none;
+        }
+
+        .prompt-group .custom-prompt-input.visible {
+            display: block;
+        }
+
+        .prompt-group .prompt-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .editor-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--hinge-border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--hinge-purple);
+            color: #fff;
+        }
+
+        .btn-primary:hover { background: #4a2244; }
+
+        .btn-secondary {
+            background: var(--hinge-gray-light);
+            color: var(--hinge-dark);
+        }
+
+        .btn-secondary:hover { background: #E8E8ED; }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--hinge-purple);
+            border: 1.5px solid var(--hinge-purple);
+        }
+
+        .btn-outline:hover {
+            background: var(--hinge-purple-light);
+        }
+
+        /* ── Preview Area ── */
+        .preview {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .phone-frame {
+            width: 395px;
+            height: 856px;
+            background: #111;
+            border-radius: 54px;
+            padding: 11px;
+            box-shadow:
+                0 30px 60px rgba(0,0,0,0.2),
+                0 0 0 1px rgba(255,255,255,0.05) inset,
+                inset 0 0 4px rgba(255,255,255,0.08);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 44px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 126px;
+            height: 32px;
+            background: #111;
+            border-radius: 0 0 20px 20px;
+            z-index: 30;
+        }
+
+        .phone-notch::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 22px;
+            width: 10px;
+            height: 10px;
+            background: #1a1a2a;
+            border-radius: 50%;
+            box-shadow: inset 0 0 2px rgba(50,50,100,0.4);
+        }
+
+        .status-bar {
+            height: 54px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 28px 8px;
+            font-size: 15px;
+            font-weight: 600;
+            position: relative;
+            z-index: 20;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .status-bar .time { letter-spacing: 0.3px; }
+
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 6px 20px 12px;
+            flex-shrink: 0;
+            background: #fff;
+            z-index: 10;
+        }
+
+        .profile-header .name-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-header .name {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .profile-header .verified-badge {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .profile-header .verified-badge.show {
+            display: flex;
+        }
+
+        .profile-header .verified-badge span {
+            font-size: 13px;
+            font-weight: 600;
+            color: #7B3F6E;
+        }
+
+        .profile-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .profile-header .back-btn,
+        .profile-header .menu-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .profile-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .profile-content::-webkit-scrollbar { width: 0; }
+
+        /* ── Profile Elements ── */
+        .profile-photo {
+            width: calc(100% - 24px);
+            margin: 6px 12px;
+            aspect-ratio: 3/4;
+            background: #F0ECF3;
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+
+        .profile-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 16px;
+        }
+
+        .profile-photo .placeholder-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #bbb;
+            font-size: 15px;
+        }
+
+        .profile-photo .placeholder-text svg {
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .like-btn {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-pills {
+            display: flex;
+            gap: 8px;
+            padding: 16px 20px 12px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: 1.5px solid #E0E0E0;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--hinge-dark);
+            white-space: nowrap;
+        }
+
+        .pill svg { flex-shrink: 0; }
+
+        .details-list {
+            padding: 4px 0;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 11px 20px;
+        }
+
+        .detail-item .icon {
+            flex-shrink: 0;
+            color: #444;
+            margin-top: 1px;
+        }
+
+        .detail-item .text {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--hinge-dark);
+            line-height: 1.35;
+        }
+
+        .detail-item .subtext {
+            font-size: 13px;
+            font-weight: 400;
+            font-style: italic;
+            color: var(--hinge-gray);
+            margin-top: 2px;
+        }
+
+        .pass-btn-fixed {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #E0E0E0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            z-index: 15;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .prompt-card {
+            padding: 24px 20px;
+            margin: 6px 12px;
+            background: #F7F7F7;
+            border-radius: 16px;
+            position: relative;
+        }
+
+        .prompt-card .prompt-q {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--hinge-gray);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .prompt-card .prompt-a {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--hinge-dark);
+            line-height: 1.25;
+            letter-spacing: -0.3px;
+        }
+
+        .prompt-card .prompt-photo {
+            width: 100%;
+            margin-top: 14px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .prompt-card .prompt-photo img {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+        }
+
+        .prompt-card .like-btn {
+            bottom: 20px;
+            right: 24px;
+        }
+
+        .prompt-photo-slot {
+            margin-top: 8px;
+            width: 100%;
+            height: 60px;
+            border: 2px dashed var(--hinge-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--hinge-gray);
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            background: var(--hinge-gray-light);
+        }
+
+        .prompt-photo-slot:hover {
+            border-color: var(--hinge-purple);
+            background: var(--hinge-purple-light);
+        }
+
+        .prompt-photo-slot.has-photo {
+            height: 80px;
+            border-style: solid;
+            border-color: transparent;
+        }
+
+        .prompt-photo-slot.has-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            inset: 0;
+        }
+
+        .prompt-photo-slot .remove-photo {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .prompt-photo-slot:hover .remove-photo { opacity: 1; }
+
+        .profile-divider {
+            height: 0;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #333;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 860px) {
+            .app {
+                flex-direction: column;
+            }
+            .editor {
+                width: 100%;
+                min-width: unset;
+                height: auto;
+                position: relative;
+                max-height: 50vh;
+            }
+            .preview {
+                padding: 24px 10px;
+            }
+            .phone-frame {
+                transform: scale(0.85);
+                transform-origin: top center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <aside class="editor">
+        <div class="editor-header">
+            <h1>Hinge Profile Builder</h1>
+            <p>PowerPoint Night Edition</p>
+        </div>
+
+        <div class="editor-body">
+            <div class="section">
+                <h3>Profile Info</h3>
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="inputName" data-field="name" placeholder="Enter name">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label>Age</label>
+                        <input type="number" id="inputAge" data-field="age" min="18" max="99" placeholder="26">
+                    </div>
+                    <div class="field">
+                        <label>Gender</label>
+                        <select id="inputGender" data-field="gender">
+                            <option value="">Select...</option>
+                            <option>Female</option>
+                            <option>Male</option>
+                            <option>Nonbinary</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Orientation (optional)</label>
+                    <input type="text" id="inputOrientation" data-field="orientation" placeholder="e.g. Bisexual, Straight">
+                </div>
+                <div class="field">
+                    <label>Height (optional)</label>
+                    <input type="text" id="inputHeight" data-field="height" placeholder="e.g. 5'7&quot;">
+                </div>
+                <div class="field" style="display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="inputVerified" style="width:auto;accent-color:#7B3F6E;" onchange="state.verified=this.checked;renderProfile()">
+                    <label for="inputVerified" style="margin:0;font-size:13px;cursor:pointer;">Show Verified Badge</label>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Details</h3>
+                <div class="field">
+                    <label>Job Title</label>
+                    <input type="text" id="inputJob" data-field="job" placeholder="e.g. Event Planner">
+                </div>
+                <div class="field">
+                    <label>School</label>
+                    <input type="text" id="inputSchool" data-field="school" placeholder="e.g. Oregon State University">
+                </div>
+                <div class="field">
+                    <label>Hometown / Location</label>
+                    <input type="text" id="inputLocation" data-field="location" placeholder="e.g. Michigan">
+                </div>
+                <div class="field">
+                    <label>Religion</label>
+                    <select id="inputReligion" data-field="religion">
+                        <option value="">Select...</option>
+                        <option>Agnostic</option>
+                        <option>Atheist</option>
+                        <option>Buddhist</option>
+                        <option>Catholic</option>
+                        <option>Christian</option>
+                        <option>Hindu</option>
+                        <option>Jewish</option>
+                        <option>Muslim</option>
+                        <option>Sikh</option>
+                        <option>Spiritual</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Politics</label>
+                    <select id="inputPolitics" data-field="politics">
+                        <option value="">Select...</option>
+                        <option>Liberal</option>
+                        <option>Moderate</option>
+                        <option>Conservative</option>
+                        <option>Not Political</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Dating Intention</h3>
+                <div class="field">
+                    <label>Intention</label>
+                    <select id="inputIntention" data-field="intention">
+                        <option value="">Select...</option>
+                        <option>Life partner</option>
+                        <option>Long-term relationship</option>
+                        <option>Long-term relationship, open to short</option>
+                        <option>Short-term relationship, open to long</option>
+                        <option>Short-term relationship</option>
+                        <option>Figuring out my dating goals</option>
+                        <option>Prefer not to say</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Personal Note (optional)</label>
+                    <textarea id="inputIntentionDetail" data-field="intentionDetail" rows="2" placeholder="e.g. I'm looking for the one!"></textarea>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Photos</h3>
+                <div class="photo-grid" id="photoGrid"></div>
+            </div>
+
+            <div class="section">
+                <h3>Prompts</h3>
+                <div id="promptsEditor"></div>
+            </div>
+        </div>
+
+        <div class="editor-footer">
+            <p style="font-size:11px;color:#8E8E93;text-align:center;margin-bottom:8px;">Scroll the profile, then copy/download to capture each section</p>
+            <button class="btn btn-primary" onclick="copyToClipboard()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy Current View
+            </button>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-outline" style="flex:1" onclick="downloadScreenOnly()">
+                    Download View
+                </button>
+                <button class="btn btn-outline" style="flex:1" onclick="downloadFullProfile()">
+                    Full Profile
+                </button>
+            </div>
+            <button class="btn btn-secondary" onclick="resetProfile()">
+                Reset Profile
+            </button>
+        </div>
+    </aside>
+
+    <main class="preview">
+        <div class="phone-frame" id="phoneFrame">
+            <div class="phone-screen" id="phoneScreen">
+                <div class="phone-notch"></div>
+                <div class="status-bar">
+                    <span class="time">4:06</span>
+                    <div class="status-icons">
+                        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="6" width="3" height="6" rx="0.5" fill="#1A1A2E"/><rect x="4.5" y="4" width="3" height="8" rx="0.5" fill="#1A1A2E"/><rect x="9" y="2" width="3" height="10" rx="0.5" fill="#1A1A2E"/><rect x="13.5" y="0" width="3" height="12" rx="0.5" fill="#1A1A2E"/></svg>
+                        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 3.6C9.8 3.6 11.4 4.3 12.6 5.4L14 4C12.4 2.5 10.3 1.6 8 1.6S3.6 2.5 2 4L3.4 5.4C4.6 4.3 6.2 3.6 8 3.6Z" fill="#1A1A2E"/><path d="M8 7.2C9 7.2 9.9 7.6 10.6 8.2L12 6.8C10.9 5.8 9.5 5.2 8 5.2S5.1 5.8 4 6.8L5.4 8.2C6.1 7.6 7 7.2 8 7.2Z" fill="#1A1A2E"/><circle cx="8" cy="10.5" r="1.5" fill="#1A1A2E"/></svg>
+                        <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0" y="1" width="22" height="10" rx="2" stroke="#1A1A2E" stroke-width="1" fill="none"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="#1A1A2E" opacity="0.4"/><rect x="1.5" y="2.5" width="19" height="7" rx="1" fill="#1A1A2E"/></svg>
+                    </div>
+                </div>
+                <div class="profile-header">
+                    <div class="name-area">
+                        <span class="name" id="headerName">Name</span>
+                        <div class="verified-badge" id="verifiedBadge">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="#7B3F6E" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            <span>Verified</span>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="back-btn">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                        </div>
+                        <div class="menu-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="#333"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-content" id="profileContent"></div>
+                <div class="pass-btn-fixed">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-actions">
+            <button class="btn btn-primary" onclick="copyToClipboard()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy Current View
+            </button>
+            <button class="btn btn-outline" onclick="downloadScreenshot()">
+                Download with Frame
+            </button>
+            <button class="btn btn-outline" onclick="downloadFullProfile()">
+                Download Full Profile
+            </button>
+        </div>
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ICONS = {
+    job: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>`,
+    school: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 3 4 6 4s6-3 6-4v-5"/></svg>`,
+    religion: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9l-7 1 5 5-1.5 7L12 18.5 18.5 22 17 15l5-5-7-1z"/></svg>`,
+    location: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    politics: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>`,
+    intention: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>`,
+    age: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V8M12 11V7M17 11V9"/><circle cx="7" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="5.5" r="1" fill="currentColor" stroke="none"/><circle cx="17" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>`,
+    orientation: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+    gender: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>`,
+    heart: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+    camera: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+    x: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    height: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2v20M8 5l4-3 4 3M8 19l4 3 4-3"/></svg>`,
+    heightDetail: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2v20M8 5l4-3 4 3M8 19l4 3 4-3"/></svg>`
+};
+
+const PROMPTS = [
+    "A life goal of mine",
+    "My simple pleasures",
+    "The way to win me over is",
+    "I'm looking for",
+    "My most irrational fear",
+    "I go crazy for",
+    "Unusual skills",
+    "This year, I really want to",
+    "My greatest strength",
+    "My Love Language is",
+    "Dating me is like",
+    "Two truths and a lie",
+    "I'm convinced that",
+    "My most controversial opinion",
+    "A shower thought I had recently",
+    "We're the same type of weird if",
+    "I'll fall for you if",
+    "The hallmark of a good relationship is",
+    "I'm the type of texter who",
+    "I recently discovered that",
+    "Green flags I look for",
+    "Don't hate me if I",
+    "After work you can find me",
+    "Together, we could",
+    "I want someone who",
+    "Typical Sunday",
+    "All I ask is that you",
+    "One thing I'll never do again",
+    "Change my mind about",
+    "Believe it or not, I",
+    "My real-life superpower is",
+    "The dorkiest thing about me is",
+    "I bet you can't",
+    "I'm weirdly attracted to",
+    "The key to my heart is",
+    "My therapist would say I",
+    "A boundary of mine is",
+    "I recently discovered that",
+    "Let's debate this topic",
+    "I geek out on"
+];
+
+const state = {
+    name: '',
+    age: '',
+    gender: '',
+    orientation: '',
+    height: '',
+    verified: false,
+    job: '',
+    school: '',
+    location: '',
+    religion: '',
+    politics: '',
+    intention: '',
+    intentionDetail: '',
+    photos: [null, null, null, null, null, null],
+    prompts: [
+        { question: '', answer: '', photo: null },
+        { question: '', answer: '', photo: null },
+        { question: '', answer: '', photo: null }
+    ]
+};
+
+function init() {
+    buildPhotoSlots();
+    buildPromptEditors();
+    bindInputs();
+    renderProfile();
+}
+
+function buildPhotoSlots() {
+    const grid = document.getElementById('photoGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'photo-slot' + (state.photos[i] ? ' has-photo' : '');
+        slot.onclick = () => triggerPhotoUpload(i);
+        if (state.photos[i]) {
+            slot.innerHTML = `
+                <img src="${state.photos[i]}" alt="Photo ${i + 1}">
+                <button class="remove-photo" onclick="event.stopPropagation(); removePhoto(${i})">&times;</button>
+            `;
+        } else {
+            slot.innerHTML = `
+                <div class="placeholder-icon">
+                    ${ICONS.camera}
+                    <span>${i + 1}</span>
+                </div>
+            `;
+        }
+        grid.appendChild(slot);
+    }
+}
+
+function buildPromptEditors() {
+    const container = document.getElementById('promptsEditor');
+    container.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+        const group = document.createElement('div');
+        group.className = 'prompt-group';
+
+        const isCustom = state.prompts[i].question && !PROMPTS.includes(state.prompts[i].question);
+
+        let options = '<option value="">Choose a prompt...</option>';
+        PROMPTS.forEach(p => {
+            const sel = !isCustom && state.prompts[i].question === p ? ' selected' : '';
+            options += `<option${sel}>${p}</option>`;
+        });
+        options += `<option value="__custom__"${isCustom ? ' selected' : ''}>✏️ Write your own...</option>`;
+
+        const hasPromptPhoto = !!state.prompts[i].photo;
+        group.innerHTML = `
+            <div class="prompt-label">Prompt ${i + 1}</div>
+            <div class="field">
+                <select data-prompt-index="${i}" data-prompt-field="question">${options}</select>
+            </div>
+            <div class="field custom-prompt-input${isCustom ? ' visible' : ''}">
+                <input type="text" data-prompt-index="${i}" data-prompt-field="customQuestion"
+                       placeholder="Type your own prompt question..."
+                       value="${isCustom ? esc(state.prompts[i].question) : ''}">
+            </div>
+            <div class="field" style="margin-top:8px">
+                <textarea data-prompt-index="${i}" data-prompt-field="answer" rows="3" placeholder="Write their answer...">${state.prompts[i].answer}</textarea>
+            </div>
+            <div class="prompt-photo-slot${hasPromptPhoto ? ' has-photo' : ''}" onclick="triggerPromptPhoto(${i})">
+                ${hasPromptPhoto
+                    ? `<img src="${state.prompts[i].photo}" alt=""><button class="remove-photo" onclick="event.stopPropagation(); removePromptPhoto(${i})">&times;</button>`
+                    : `${ICONS.camera} <span>Add photo (optional)</span>`}
+            </div>
+        `;
+        container.appendChild(group);
+    }
+
+    container.querySelectorAll('select').forEach(el => {
+        const handler = (e) => {
+            const idx = parseInt(e.target.dataset.promptIndex);
+            const customInput = e.target.closest('.prompt-group').querySelector('.custom-prompt-input');
+            if (e.target.value === '__custom__') {
+                customInput.classList.add('visible');
+                const input = customInput.querySelector('input');
+                input.focus();
+                state.prompts[idx].question = input.value;
+            } else {
+                customInput.classList.remove('visible');
+                state.prompts[idx].question = e.target.value;
+            }
+            renderProfile();
+        };
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+    });
+
+    container.querySelectorAll('input[data-prompt-field="customQuestion"]').forEach(el => {
+        el.addEventListener('input', (e) => {
+            const idx = parseInt(e.target.dataset.promptIndex);
+            state.prompts[idx].question = e.target.value;
+            renderProfile();
+        });
+    });
+
+    container.querySelectorAll('textarea').forEach(el => {
+        el.addEventListener('input', handlePromptChange);
+    });
+}
+
+function bindInputs() {
+    document.querySelectorAll('[data-field]').forEach(el => {
+        const handler = (e) => {
+            state[e.target.dataset.field] = e.target.value;
+            renderProfile();
+        };
+        el.addEventListener('input', handler);
+        if (el.tagName === 'SELECT') el.addEventListener('change', handler);
+    });
+}
+
+function handlePromptChange(e) {
+    const idx = parseInt(e.target.dataset.promptIndex);
+    const field = e.target.dataset.promptField;
+    state.prompts[idx][field] = e.target.value;
+    renderProfile();
+}
+
+function triggerPhotoUpload(index) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            state.photos[index] = ev.target.result;
+            buildPhotoSlots();
+            renderProfile();
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+function removePhoto(index) {
+    state.photos[index] = null;
+    buildPhotoSlots();
+    renderProfile();
+}
+
+function triggerPromptPhoto(promptIndex) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            state.prompts[promptIndex].photo = ev.target.result;
+            buildPromptEditors();
+            renderProfile();
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+function removePromptPhoto(promptIndex) {
+    state.prompts[promptIndex].photo = null;
+    buildPromptEditors();
+    renderProfile();
+}
+
+function renderPromptCard(index) {
+    const p = state.prompts[index];
+    if (!p.question || !p.answer) return '';
+    const photoHtml = p.photo
+        ? `<div class="prompt-photo"><img src="${p.photo}" alt=""></div>`
+        : '';
+    return `<div class="prompt-card">
+        <div class="prompt-q">${esc(p.question)}</div>
+        <div class="prompt-a">${esc(p.answer)}</div>
+        ${photoHtml}
+        <div class="like-btn">${ICONS.heart}</div>
+    </div>`;
+}
+
+function renderProfile() {
+    const el = document.getElementById('profileContent');
+    const scrollTop = el.scrollTop;
+
+    document.getElementById('headerName').textContent = state.name || 'Name';
+
+    const badge = document.getElementById('verifiedBadge');
+    badge.classList.toggle('show', state.verified);
+
+    let html = '';
+
+    // Photo 1
+    html += renderPhoto(0);
+
+    // Prompt 1 (right after first photo, before stats)
+    html += renderPromptCard(0);
+
+    // Info pills
+    html += '<div class="info-pills">';
+    if (state.age) html += `<div class="pill">${ICONS.age} ${esc(state.age)}</div>`;
+    if (state.gender) html += `<div class="pill">${ICONS.gender} ${esc(state.gender)}</div>`;
+    if (state.orientation) html += `<div class="pill">${ICONS.orientation} ${esc(state.orientation)}</div>`;
+    if (state.height) html += `<div class="pill">${ICONS.height} ${esc(state.height)}</div>`;
+    html += '</div>';
+
+    // Details
+    const details = [];
+    if (state.job) details.push({ icon: 'job', text: state.job });
+    if (state.school) details.push({ icon: 'school', text: state.school });
+    if (state.religion) details.push({ icon: 'religion', text: state.religion });
+    if (state.location) details.push({ icon: 'location', text: state.location });
+    if (state.politics) details.push({ icon: 'politics', text: state.politics });
+    if (state.intention) {
+        details.push({
+            icon: 'intention',
+            text: state.intention,
+            subtext: state.intentionDetail || ''
+        });
+    }
+
+    if (details.length) {
+        html += '<div class="details-list">';
+        details.forEach(d => {
+            html += `<div class="detail-item">
+                <div class="icon">${ICONS[d.icon]}</div>
+                <div>
+                    <div class="text">${esc(d.text)}</div>
+                    ${d.subtext ? `<div class="subtext">${esc(d.subtext)}</div>` : ''}
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    // Photo 2
+    if (state.photos[1]) html += renderPhoto(1);
+
+    // Remaining prompts and photos alternate
+    const remaining = [
+        { type: 'prompt', index: 1 },
+        { type: 'photo', index: 2 },
+        { type: 'prompt', index: 2 },
+        { type: 'photo', index: 3 },
+        { type: 'photo', index: 4 },
+        { type: 'photo', index: 5 }
+    ];
+
+    remaining.forEach(item => {
+        if (item.type === 'prompt') {
+            html += renderPromptCard(item.index);
+        } else if (state.photos[item.index]) {
+            html += renderPhoto(item.index);
+        }
+    });
+
+    html += '<div style="height:40px"></div>';
+
+    el.innerHTML = html;
+    el.scrollTop = scrollTop;
+}
+
+function renderPhoto(index) {
+    if (state.photos[index]) {
+        return `<div class="profile-photo">
+            <img src="${state.photos[index]}" alt="">
+            <div class="like-btn">${ICONS.heart}</div>
+        </div>`;
+    } else if (index === 0) {
+        return `<div class="profile-photo">
+            <div class="placeholder-text">
+                ${ICONS.camera}
+                <span>Add a photo</span>
+            </div>
+        </div>`;
+    }
+    return '';
+}
+
+function esc(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+let screenshotCount = 0;
+
+function cloneAtScroll(clonedDoc) {
+    const original = document.getElementById('profileContent');
+    const scrollOffset = original.scrollTop;
+    const el = clonedDoc.getElementById('profileContent');
+    el.style.overflow = 'hidden';
+    const wrapper = clonedDoc.createElement('div');
+    wrapper.style.position = 'relative';
+    wrapper.style.top = `-${scrollOffset}px`;
+    while (el.firstChild) wrapper.appendChild(el.firstChild);
+    el.appendChild(wrapper);
+}
+
+async function captureView(target, bg) {
+    return await html2canvas(document.getElementById(target), {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: bg,
+        logging: false,
+        onclone: cloneAtScroll
+    });
+}
+
+function saveCanvas(canvas, suffix) {
+    const link = document.createElement('a');
+    const safeName = (state.name || 'profile').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    link.download = `hinge-${safeName}-${suffix}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+async function downloadScreenshot() {
+    showToast('Generating screenshot...');
+    try {
+        screenshotCount++;
+        const canvas = await captureView('phoneFrame', null);
+        saveCanvas(canvas, screenshotCount);
+        showToast(`Downloaded screenshot ${screenshotCount}`);
+    } catch (err) {
+        showToast('Error: ' + err.message);
+    }
+}
+
+async function downloadScreenOnly() {
+    showToast('Generating screenshot...');
+    try {
+        screenshotCount++;
+        const canvas = await captureView('phoneScreen', '#ffffff');
+        saveCanvas(canvas, screenshotCount);
+        showToast(`Downloaded screenshot ${screenshotCount}`);
+    } catch (err) {
+        showToast('Error: ' + err.message);
+    }
+}
+
+async function downloadFullProfile() {
+    showToast('Generating full profile...');
+    try {
+        const canvas = await html2canvas(document.getElementById('phoneScreen'), {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            onclone: (clonedDoc) => {
+                const el = clonedDoc.getElementById('profileContent');
+                el.style.overflow = 'visible';
+                el.style.height = 'auto';
+                el.style.flex = 'none';
+                const screen = clonedDoc.getElementById('phoneScreen');
+                screen.style.height = 'auto';
+                screen.style.overflow = 'visible';
+            }
+        });
+        saveCanvas(canvas, 'full');
+        showToast('Full profile downloaded!');
+    } catch (err) {
+        showToast('Error: ' + err.message);
+    }
+}
+
+async function copyToClipboard() {
+    showToast('Copying current view...');
+    try {
+        screenshotCount++;
+        const canvas = await captureView('phoneScreen', '#ffffff');
+        canvas.toBlob(async (blob) => {
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                showToast(`Copied screenshot ${screenshotCount} to clipboard!`);
+            } catch {
+                showToast('Clipboard not supported — use Download instead');
+            }
+        }, 'image/png');
+    } catch (err) {
+        showToast('Error: ' + err.message);
+    }
+}
+
+function resetProfile() {
+    if (!confirm('Reset all fields and photos?')) return;
+    state.name = '';
+    state.age = '';
+    state.gender = '';
+    state.orientation = '';
+    state.height = '';
+    state.verified = false;
+    state.job = '';
+    state.school = '';
+    state.location = '';
+    state.religion = '';
+    state.politics = '';
+    state.intention = '';
+    state.intentionDetail = '';
+    state.photos = [null, null, null, null, null, null];
+    state.prompts = [
+        { question: '', answer: '', photo: null },
+        { question: '', answer: '', photo: null },
+        { question: '', answer: '', photo: null }
+    ];
+
+    document.querySelectorAll('[data-field]').forEach(el => {
+        el.value = '';
+    });
+    document.getElementById('inputVerified').checked = false;
+
+    buildPhotoSlots();
+    buildPromptEditors();
+    renderProfile();
+    showToast('Profile reset');
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+
+</body>
+</html>
