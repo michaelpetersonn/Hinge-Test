@@ -772,6 +772,102 @@
             transform: translateX(-50%) translateY(0);
         }
 
+        .profile-manager {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .profile-manager .save-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .profile-manager .save-row input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--hinge-border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: var(--font);
+        }
+
+        .profile-manager .save-row button {
+            padding: 8px 14px;
+            background: var(--hinge-purple);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .saved-profiles-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        .saved-profiles-list::-webkit-scrollbar { width: 4px; }
+        .saved-profiles-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+        .saved-profile-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--hinge-gray-light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .saved-profile-item:hover {
+            background: var(--hinge-purple-light);
+        }
+
+        .saved-profile-item .profile-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .saved-profile-item .profile-date {
+            font-size: 11px;
+            color: var(--hinge-gray);
+        }
+
+        .saved-profile-item .delete-btn {
+            width: 22px;
+            height: 22px;
+            border: none;
+            background: none;
+            color: #999;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .saved-profile-item .delete-btn:hover {
+            background: #eee;
+            color: #E04255;
+        }
+
+        .no-saved-profiles {
+            font-size: 12px;
+            color: var(--hinge-gray);
+            text-align: center;
+            padding: 12px 0;
+        }
+
         @media (max-width: 860px) {
             .app {
                 flex-direction: column;
@@ -915,6 +1011,16 @@
         </div>
 
         <div class="editor-footer">
+            <div class="section" style="border-top:1px solid var(--hinge-border);padding-top:16px;margin-bottom:12px;">
+                <h3>Saved Profiles</h3>
+                <div class="profile-manager">
+                    <div class="save-row">
+                        <input type="text" id="saveProfileName" placeholder="Profile name (e.g. Kenzie)">
+                        <button onclick="saveCurrentProfile()">Save</button>
+                    </div>
+                    <div class="saved-profiles-list" id="savedProfilesList"></div>
+                </div>
+            </div>
             <p style="font-size:11px;color:#8E8E93;text-align:center;margin-bottom:8px;">Scroll the profile, then copy/download to capture each section</p>
             <button class="btn btn-primary" onclick="copyToClipboard()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -1559,7 +1665,116 @@ function showToast(msg) {
     toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+const STORAGE_KEY = 'hingeProfileBuilder_saved';
+const AUTOSAVE_KEY = 'hingeProfileBuilder_autosave';
+
+function getSavedProfiles() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch { return {}; }
+}
+
+function saveSavedProfiles(profiles) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+}
+
+function getStateSnapshot() {
+    return JSON.parse(JSON.stringify(state));
+}
+
+function saveCurrentProfile() {
+    const input = document.getElementById('saveProfileName');
+    let name = input.value.trim();
+    if (!name) name = state.name || 'Untitled';
+    const profiles = getSavedProfiles();
+    profiles[name] = { data: getStateSnapshot(), savedAt: new Date().toLocaleString() };
+    saveSavedProfiles(profiles);
+    input.value = '';
+    renderSavedProfiles();
+    showToast(`Saved "${name}"`);
+}
+
+function loadSavedProfile(name) {
+    const profiles = getSavedProfiles();
+    const profile = profiles[name];
+    if (!profile) return;
+    Object.assign(state, profile.data);
+    if (!state.photos) state.photos = [null, null, null, null, null, null];
+    if (!state.prompts) state.prompts = [{ question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }];
+
+    document.querySelectorAll('[data-field]').forEach(el => {
+        const field = el.dataset.field;
+        if (state[field] !== undefined) el.value = state[field];
+    });
+    document.getElementById('inputVerified').checked = state.verified || false;
+
+    buildPhotoSlots();
+    buildPromptEditors();
+    renderProfile();
+    document.getElementById('saveProfileName').value = name;
+    showToast(`Loaded "${name}"`);
+}
+
+function deleteSavedProfile(name, event) {
+    event.stopPropagation();
+    if (!confirm(`Delete "${name}"?`)) return;
+    const profiles = getSavedProfiles();
+    delete profiles[name];
+    saveSavedProfiles(profiles);
+    renderSavedProfiles();
+    showToast(`Deleted "${name}"`);
+}
+
+function renderSavedProfiles() {
+    const list = document.getElementById('savedProfilesList');
+    const profiles = getSavedProfiles();
+    const names = Object.keys(profiles);
+    if (!names.length) {
+        list.innerHTML = '<div class="no-saved-profiles">No saved profiles yet</div>';
+        return;
+    }
+    list.innerHTML = names.map(name => {
+        const p = profiles[name];
+        return `<div class="saved-profile-item" onclick="loadSavedProfile('${name.replace(/'/g, "\\'")}')">
+            <span class="profile-name">${name}</span>
+            <span class="profile-date">${p.savedAt || ''}</span>
+            <button class="delete-btn" onclick="deleteSavedProfile('${name.replace(/'/g, "\\'")}', event)" title="Delete">&times;</button>
+        </div>`;
+    }).join('');
+}
+
+function autoSave() {
+    try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getStateSnapshot())); }
+    catch {}
+}
+
+function autoRestore() {
+    try {
+        const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY));
+        if (!data) return;
+        Object.assign(state, data);
+        if (!state.photos) state.photos = [null, null, null, null, null, null];
+        if (!state.prompts) state.prompts = [{ question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }];
+
+        document.querySelectorAll('[data-field]').forEach(el => {
+            const field = el.dataset.field;
+            if (state[field] !== undefined) el.value = state[field];
+        });
+        document.getElementById('inputVerified').checked = state.verified || false;
+    } catch {}
+}
+
+const _origRenderProfile = renderProfile;
+renderProfile = function() {
+    _origRenderProfile();
+    autoSave();
+};
+
 init();
+autoRestore();
+buildPhotoSlots();
+buildPromptEditors();
+renderProfile();
+renderSavedProfiles();
 </script>
 
 </body>
