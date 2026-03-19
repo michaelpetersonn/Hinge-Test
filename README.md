@@ -6,15 +6,17 @@ A browser-based tool for creating fake Hinge dating profiles for your friends. P
 
 ### Prerequisites
 
-- **Python 3** (pre-installed on most Macs) — used only to serve the file locally
+- **Python 3** — used only to serve the file locally
+  - **Mac**: Pre-installed. Verify with `python3 --version`
+  - **Windows**: Download from [python.org](https://www.python.org/downloads/)
 - A modern browser (Chrome, Safari, Edge, Firefox)
 
 ### Running the App
 
-1. Open a terminal and navigate to this folder:
+1. Open a terminal (Mac) or Command Prompt (Windows) and navigate to this project folder:
 
    ```bash
-   cd "/Users/michaelpeterson/Library/CloudStorage/GoogleDrive-petersonmichaelc@gmail.com/My Drive/Hinge Test"
+   cd path/to/hinge-profile-builder
    ```
 
 2. Start a local web server:
@@ -23,64 +25,21 @@ A browser-based tool for creating fake Hinge dating profiles for your friends. P
    python3 -m http.server 8765
    ```
 
+   On Windows, if `python3` doesn't work, try:
+
+   ```bash
+   python -m http.server 8765
+   ```
+
 3. Open your browser and go to:
 
    ```
    http://localhost:8765/index.html
    ```
 
+4. You're in! Start building profiles.
+
 > **Why a local server?** The app uses `html2canvas` for screenshots, which requires HTTP — opening the file directly via `file://` will cause security restrictions.
-
-## Troubleshooting
-
-### "Address already in use" error
-
-Another process is already using port 8765. Either:
-
-- **Use it** — the server is already running, just open `http://localhost:8765/index.html` in your browser.
-- **Kill the old process and restart:**
-
-  ```bash
-  lsof -ti:8765 | xargs kill -9
-  python3 -m http.server 8765
-  ```
-
-- **Or pick a different port:**
-
-  ```bash
-  python3 -m http.server 9000
-  ```
-
-  Then open `http://localhost:9000/index.html` instead.
-
-### Page won't load / connection refused
-
-1. Make sure the terminal is still running the `python3 -m http.server` command — don't close it.
-2. Confirm you're in the right directory. Run `ls` and you should see `index.html` in the output.
-3. Try `http://127.0.0.1:8765/index.html` instead of `localhost`.
-
-### Blank page or broken layout
-
-- **Hard refresh** your browser: **Cmd + Shift + R** (Mac) or **Ctrl + Shift + R** (Windows).
-- Make sure you're opening via `http://localhost:...` and **not** via `file:///...` in the URL bar.
-
-### Screenshots / copy to clipboard not working
-
-- Must be served over HTTP (localhost), not opened as a file.
-- Clipboard copy requires a secure context — `localhost` counts, but `file://` does not.
-- If copy still fails, use the **Download** buttons instead.
-
-### Google Drive sync issues
-
-Since this project lives on Google Drive, the file may take a moment to sync after edits. If you see stale content:
-
-1. Check that Google Drive has finished syncing (look for the cloud icon in Finder).
-2. Hard refresh the browser (**Cmd + Shift + R**).
-3. Add `?v=123` (any random number) to the end of the URL to bust the cache:
-
-   ```
-   http://localhost:8765/index.html?v=123
-   ```
 
 ## How to Use
 
@@ -123,6 +82,45 @@ The app offers multiple ways to capture the profile:
 ### 5. Reset
 
 Click **Reset Profile** to clear all fields and start fresh for the next friend.
+
+## Troubleshooting
+
+### "Address already in use" error
+
+Another process is already using port 8765. Either:
+
+- **Use it** — the server may already be running. Just open `http://localhost:8765/index.html` in your browser.
+- **Kill the old process and restart (Mac/Linux):**
+
+  ```bash
+  lsof -ti:8765 | xargs kill -9
+  python3 -m http.server 8765
+  ```
+
+- **Or pick a different port:**
+
+  ```bash
+  python3 -m http.server 9000
+  ```
+
+  Then open `http://localhost:9000/index.html` instead.
+
+### Page won't load / connection refused
+
+1. Make sure the terminal is still running the `python3 -m http.server` command — don't close it.
+2. Confirm you're in the right directory. Run `ls` (Mac/Linux) or `dir` (Windows) and you should see `index.html` in the output.
+3. Try `http://127.0.0.1:8765/index.html` instead of `localhost`.
+
+### Blank page or broken layout
+
+- **Hard refresh** your browser: **Cmd + Shift + R** (Mac) or **Ctrl + Shift + R** (Windows).
+- Make sure you're opening via `http://localhost:...` and **not** via `file:///...` in the URL bar.
+
+### Screenshots / copy to clipboard not working
+
+- Must be served over HTTP (localhost), not opened as a file.
+- Clipboard copy requires a secure context — `localhost` counts, but `file://` does not.
+- If copy still fails, use the **Download** buttons instead.
 
 ## Technology
 
