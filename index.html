@@ -1665,102 +1665,147 @@ function showToast(msg) {
     toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
-const STORAGE_KEY = 'hingeProfileBuilder_saved';
-const AUTOSAVE_KEY = 'hingeProfileBuilder_autosave';
+const DB_NAME = 'HingeProfileBuilder';
+const DB_VERSION = 1;
+const STORE_PROFILES = 'profiles';
+const STORE_AUTOSAVE = 'autosave';
+const AUTOSAVE_ID = '__current__';
 
-function getSavedProfiles() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
-    catch { return {}; }
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_PROFILES)) {
+                db.createObjectStore(STORE_PROFILES, { keyPath: 'name' });
+            }
+            if (!db.objectStoreNames.contains(STORE_AUTOSAVE)) {
+                db.createObjectStore(STORE_AUTOSAVE, { keyPath: 'id' });
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
 }
 
-function saveSavedProfiles(profiles) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+function dbPut(storeName, data) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).put(data);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    }));
+}
+
+function dbGet(storeName, key) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    }));
+}
+
+function dbGetAll(storeName) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+    }));
+}
+
+function dbDelete(storeName, key) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).delete(key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    }));
 }
 
 function getStateSnapshot() {
     return JSON.parse(JSON.stringify(state));
 }
 
-function saveCurrentProfile() {
-    const input = document.getElementById('saveProfileName');
-    let name = input.value.trim();
-    if (!name) name = state.name || 'Untitled';
-    const profiles = getSavedProfiles();
-    profiles[name] = { data: getStateSnapshot(), savedAt: new Date().toLocaleString() };
-    saveSavedProfiles(profiles);
-    input.value = '';
-    renderSavedProfiles();
-    showToast(`Saved "${name}"`);
-}
-
-function loadSavedProfile(name) {
-    const profiles = getSavedProfiles();
-    const profile = profiles[name];
-    if (!profile) return;
-    Object.assign(state, profile.data);
+function applyStateToUI(data) {
+    Object.assign(state, data);
     if (!state.photos) state.photos = [null, null, null, null, null, null];
-    if (!state.prompts) state.prompts = [{ question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }];
-
+    if (!state.prompts) state.prompts = [
+        { question: '', answer: '', photo: null },
+        { question: '', answer: '', photo: null },
+        { question: '', answer: '', photo: null }
+    ];
     document.querySelectorAll('[data-field]').forEach(el => {
         const field = el.dataset.field;
         if (state[field] !== undefined) el.value = state[field];
     });
     document.getElementById('inputVerified').checked = state.verified || false;
-
     buildPhotoSlots();
     buildPromptEditors();
     renderProfile();
-    document.getElementById('saveProfileName').value = name;
-    showToast(`Loaded "${name}"`);
+}
+
+function saveCurrentProfile() {
+    const input = document.getElementById('saveProfileName');
+    let name = input.value.trim();
+    if (!name) name = state.name || 'Untitled';
+    const record = { name, data: getStateSnapshot(), savedAt: new Date().toLocaleString() };
+    dbPut(STORE_PROFILES, record).then(() => {
+        input.value = '';
+        renderSavedProfiles();
+        showToast(`Saved "${name}"`);
+    }).catch(err => showToast('Save failed: ' + err.message));
+}
+
+function loadSavedProfile(name) {
+    dbGet(STORE_PROFILES, name).then(record => {
+        if (!record) return;
+        applyStateToUI(record.data);
+        document.getElementById('saveProfileName').value = name;
+        showToast(`Loaded "${name}"`);
+    });
 }
 
 function deleteSavedProfile(name, event) {
     event.stopPropagation();
     if (!confirm(`Delete "${name}"?`)) return;
-    const profiles = getSavedProfiles();
-    delete profiles[name];
-    saveSavedProfiles(profiles);
-    renderSavedProfiles();
-    showToast(`Deleted "${name}"`);
+    dbDelete(STORE_PROFILES, name).then(() => {
+        renderSavedProfiles();
+        showToast(`Deleted "${name}"`);
+    });
 }
 
 function renderSavedProfiles() {
     const list = document.getElementById('savedProfilesList');
-    const profiles = getSavedProfiles();
-    const names = Object.keys(profiles);
-    if (!names.length) {
-        list.innerHTML = '<div class="no-saved-profiles">No saved profiles yet</div>';
-        return;
-    }
-    list.innerHTML = names.map(name => {
-        const p = profiles[name];
-        return `<div class="saved-profile-item" onclick="loadSavedProfile('${name.replace(/'/g, "\\'")}')">
-            <span class="profile-name">${name}</span>
-            <span class="profile-date">${p.savedAt || ''}</span>
-            <button class="delete-btn" onclick="deleteSavedProfile('${name.replace(/'/g, "\\'")}', event)" title="Delete">&times;</button>
-        </div>`;
-    }).join('');
+    dbGetAll(STORE_PROFILES).then(profiles => {
+        if (!profiles.length) {
+            list.innerHTML = '<div class="no-saved-profiles">No saved profiles yet</div>';
+            return;
+        }
+        list.innerHTML = profiles.map(p => {
+            const safeName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `<div class="saved-profile-item" onclick="loadSavedProfile('${safeName}')">
+                <span class="profile-name">${p.name}</span>
+                <span class="profile-date">${p.savedAt || ''}</span>
+                <button class="delete-btn" onclick="deleteSavedProfile('${safeName}', event)" title="Delete">&times;</button>
+            </div>`;
+        }).join('');
+    });
 }
 
+let _autoSaveTimer = null;
 function autoSave() {
-    try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getStateSnapshot())); }
-    catch {}
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => {
+        dbPut(STORE_AUTOSAVE, { id: AUTOSAVE_ID, data: getStateSnapshot() }).catch(() => {});
+    }, 500);
 }
 
 function autoRestore() {
-    try {
-        const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY));
-        if (!data) return;
-        Object.assign(state, data);
-        if (!state.photos) state.photos = [null, null, null, null, null, null];
-        if (!state.prompts) state.prompts = [{ question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }, { question: '', answer: '', photo: null }];
-
-        document.querySelectorAll('[data-field]').forEach(el => {
-            const field = el.dataset.field;
-            if (state[field] !== undefined) el.value = state[field];
-        });
-        document.getElementById('inputVerified').checked = state.verified || false;
-    } catch {}
+    return dbGet(STORE_AUTOSAVE, AUTOSAVE_ID).then(record => {
+        if (record && record.data) applyStateToUI(record.data);
+    }).catch(() => {});
 }
 
 const _origRenderProfile = renderProfile;
@@ -1770,11 +1815,12 @@ renderProfile = function() {
 };
 
 init();
-autoRestore();
-buildPhotoSlots();
-buildPromptEditors();
-renderProfile();
-renderSavedProfiles();
+autoRestore().then(() => {
+    buildPhotoSlots();
+    buildPromptEditors();
+    renderProfile();
+    renderSavedProfiles();
+});
 </script>
 
 </body>
