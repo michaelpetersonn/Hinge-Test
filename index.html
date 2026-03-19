@@ -319,26 +319,14 @@
 
         .phone-notch {
             position: absolute;
-            top: 0;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 126px;
-            height: 32px;
+            width: 120px;
+            height: 34px;
             background: #111;
-            border-radius: 0 0 20px 20px;
+            border-radius: 22px;
             z-index: 30;
-        }
-
-        .phone-notch::before {
-            content: '';
-            position: absolute;
-            top: 10px;
-            right: 22px;
-            width: 10px;
-            height: 10px;
-            background: #1a1a2a;
-            border-radius: 50%;
-            box-shadow: inset 0 0 2px rgba(50,50,100,0.4);
         }
 
         .status-bar {
@@ -529,9 +517,110 @@
             margin-top: 2px;
         }
 
+        .discovery-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px 10px;
+            background: #fff;
+            flex-shrink: 0;
+            overflow-x: auto;
+            z-index: 10;
+        }
+
+        .discovery-bar::-webkit-scrollbar { display: none; }
+
+        .discovery-bar .filter-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .discovery-bar .filter-pill {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .discovery-bar .filter-pill.active {
+            background: #333;
+            color: #fff;
+        }
+
+        .discovery-bar .filter-pill.inactive {
+            background: #fff;
+            color: #333;
+            border: 1.5px solid #D0D0D0;
+        }
+
+        .discovery-bar .filter-pill .chevron {
+            width: 10px;
+            height: 10px;
+            margin-left: 2px;
+        }
+
+        .bottom-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 10px 8px 28px;
+            background: #fff;
+            border-top: 1px solid #EBEBEB;
+            flex-shrink: 0;
+            z-index: 15;
+        }
+
+        .bottom-nav .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            position: relative;
+            color: #B0B0B0;
+        }
+
+        .bottom-nav .nav-item.active {
+            color: #333;
+        }
+
+        .bottom-nav .nav-badge {
+            position: absolute;
+            top: -2px;
+            right: -6px;
+            background: #7B3F6E;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+
+        .bottom-nav .nav-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #D9D9D9;
+            border: 2px solid transparent;
+        }
+
         .pass-btn-fixed {
             position: absolute;
-            bottom: 16px;
+            bottom: 72px;
             left: 16px;
             width: 48px;
             height: 48px;
@@ -856,6 +945,30 @@
                         <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0" y="1" width="22" height="10" rx="2" stroke="#1A1A2E" stroke-width="1" fill="none"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="#1A1A2E" opacity="0.4"/><rect x="1.5" y="2.5" width="19" height="7" rx="1" fill="#1A1A2E"/></svg>
                     </div>
                 </div>
+                <div class="discovery-bar">
+                    <div class="filter-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round">
+                            <line x1="4" y1="6" x2="20" y2="6"/>
+                            <line x1="4" y1="12" x2="20" y2="12"/>
+                            <line x1="4" y1="18" x2="20" y2="18"/>
+                            <circle cx="8" cy="6" r="2.5" fill="#fff" stroke="#333"/>
+                            <circle cx="16" cy="12" r="2.5" fill="#fff" stroke="#333"/>
+                            <circle cx="10" cy="18" r="2.5" fill="#fff" stroke="#333"/>
+                        </svg>
+                    </div>
+                    <div class="filter-pill active">
+                        Age
+                        <svg class="chevron" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+                    </div>
+                    <div class="filter-pill inactive">
+                        Height
+                        <svg class="chevron" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+                    </div>
+                    <div class="filter-pill inactive">
+                        Dating Intention
+                        <svg class="chevron" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+                    </div>
+                </div>
                 <div class="profile-header">
                     <div class="name-area">
                         <span class="name" id="headerName">Name</span>
@@ -876,6 +989,24 @@
                 <div class="profile-content" id="profileContent"></div>
                 <div class="pass-btn-fixed">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+                <div class="bottom-nav">
+                    <div class="nav-item active">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h3v8h8V3h3v18h-3v-7H8v7H5V3z"/></svg>
+                    </div>
+                    <div class="nav-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <div class="nav-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </div>
+                    <div class="nav-item">
+                        <span class="nav-badge">13</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div class="nav-item">
+                        <div class="nav-avatar"></div>
+                    </div>
                 </div>
             </div>
         </div>
